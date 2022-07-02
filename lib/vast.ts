@@ -1,5 +1,7 @@
 import { convertTimeToSecond } from "./util";
 import { VastUtil, VASTObject } from "../interface/interface";
+import { sendError } from "./beacon";
+import { ErrorCode } from "./macro";
 
 
 const TRACKING_EVENT_POINT = new Map<string, number>([
@@ -11,12 +13,23 @@ const TRACKING_EVENT_POINT = new Map<string, number>([
 ]);
 
 class Vast implements VastUtil {
-    parseVast (sourceVast: string) {
-        let vastDoc = this.parseVastXML(sourceVast);
+    errorUrls: string[];
 
-        const vastObject = this.createVastObject(vastDoc);
+    constructor() {
+        this.errorUrls = [];
+    }
 
-        return vastObject;
+    parseVast (sourceVast: string): VASTObject | null {
+        try {
+            let vastDoc = this.parseVastXML(sourceVast);
+            let vastObject = this.createVastObject(vastDoc);
+
+            return vastObject;
+        } catch (e) {
+            console.log("[ERROR] cannot create VASTObject: " + e);
+
+            return null;
+        }
     }
 
     parseVastXML (sourceVast: string) {
@@ -24,7 +37,7 @@ class Vast implements VastUtil {
         let xmlDoc: XMLDocument  = parser.parseFromString(sourceVast,"application/xml");
         let parserError = xmlDoc.querySelector("parsererror");
         if (parserError) {
-            throw new Error("cannot parse VAST");
+            throw new Error(parserError.textContent || "parse vast error");
         }
 
         let vastDoc = xmlDoc.querySelector("VAST");
@@ -35,38 +48,51 @@ class Vast implements VastUtil {
         return vastDoc;
     }
 
-    createVastObject(vdoc: Element) {
+    createVastObject(vdoc: Element): VASTObject {
+
+        const rootErrorDoc = vdoc.querySelector(":scope>Error");
+        if (!rootErrorDoc) {
+            throw new Error("cannot parse root Error");
+        }
+        if (rootErrorDoc.textContent) this.errorUrls.push(rootErrorDoc.textContent);
+
         const inlineDoc = vdoc.querySelector(":scope>Ad>InLine");
         if (!inlineDoc) {
-            throw new Error("cannot parse InLine");
+            sendError(this.errorUrls, ErrorCode.NoVASTResponseAfterWrapper);
+            throw new Error("parse InLine error");
         }
 
         const errorDoc = inlineDoc.querySelector(":scope>Error");
         if (!errorDoc || !errorDoc.textContent) {
-            throw new Error("cannot parse InLine Error");
+            sendError(this.errorUrls, ErrorCode.XMLParseError);
+            throw new Error("parse InLine Error error");
         }
-        const errorUrl = errorDoc.textContent;
+        if (errorDoc.textContent) this.errorUrls.push(errorDoc.textContent);
 
         const impDoc = inlineDoc.querySelector(":scope>Impression");
         if (!impDoc || !impDoc.textContent) {
-            throw new Error("cannot parse InLine Impression");
+            sendError(this.errorUrls, ErrorCode.XMLParseError);
+            throw new Error("parse InLine Impression error");
         }
         const impressionUrl = impDoc.textContent;
 
         const adTitleDoc = inlineDoc.querySelector(":scope>AdTitle");
         if (!adTitleDoc || !adTitleDoc.textContent) {
-            throw new Error("cannot parse InLine AdTitle");
+            sendError(this.errorUrls, ErrorCode.XMLParseError);
+            throw new Error("parse InLine AdTitle error");
         }
         const adTitle = adTitleDoc.textContent;
 
         const linearDoc = inlineDoc.querySelector(":scope>Creatives>Creative>Linear");
         if (!linearDoc) {
-            throw new Error("cannot parse InLine Linear");
+            sendError(this.errorUrls, ErrorCode.XMLParseError);
+            throw new Error("parse InLine Linear error");
         }
 
         const durationDoc = linearDoc.querySelector(":scope>Duration");
         if (!durationDoc || !durationDoc.textContent) {
-            throw new Error("cannot parse InLine Linear Duration");
+            sendError(this.errorUrls, ErrorCode.XMLParseError);
+            throw new Error("parse InLine Linear Duration error");
         }
         const duration = convertTimeToSecond(durationDoc.textContent);
 
@@ -75,19 +101,21 @@ class Vast implements VastUtil {
 
         const mediaFilesDoc = linearDoc.querySelectorAll(":scope>MediaFiles>MediaFile");
         if (!mediaFilesDoc) {
-            throw new Error("cannot parse MediaFiles");
+            sendError(this.errorUrls, ErrorCode.XMLParseError);
+            throw new Error("parse MediaFiles error");
         }
         // ひとまず1つ目のMediaFileのURLのみ取得
         const mediaFileUrl = mediaFilesDoc[0]?.textContent!;
 
         const clickThroughDoc = linearDoc.querySelector(":scope>VideoClicks>ClickThrough");
         if (!clickThroughDoc || !clickThroughDoc.textContent) {
-            throw new Error("cannot parse InLine Linear ClickThrough");
+            sendError(this.errorUrls, ErrorCode.XMLParseError);
+            throw new Error("parse InLine Linear ClickThrough error");
         }
         const clickThroughUrl = clickThroughDoc.textContent;
 
         const vastObject: VASTObject = {
-            errorUrl: errorUrl,
+            errorUrls: this.errorUrls,
             impressionUrls: [impressionUrl],
             adTitle: adTitle,
             trackingMap: trackingMap,

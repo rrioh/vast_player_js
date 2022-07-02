@@ -18,6 +18,9 @@ const container = `
 
 const inlineVastSample = `
 <VAST version="4.2">
+  <Error>
+    <![CDATA[http://test.example/error?code=[ERRORCODE]&clientTime=[TIMESTAMP]]]>
+  </Error>
   <Ad id="1b330e59-3a62-4000-b9fb-ac9726e98c52" sequence="1">
     <InLine>
       <AdSystem version="2.0">nend</AdSystem>
@@ -78,6 +81,9 @@ class VastExecutor implements Executor {
         console.log("setPlayer started...");
         sourceVast = inlineVastSample;
         const vastObject = vast.parseVast(sourceVast);
+        if (!vastObject) {
+            return;
+        }
 
         let iframe = document.createElement("iframe");
         iframe.width = "300px";

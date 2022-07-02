@@ -3,10 +3,7 @@ import { VASTObject } from "../interface/interface";
 function setImpressionUrl(video: HTMLVideoElement, urls: string[]) {
     for (let url of urls) {
         video.addEventListener("canplay", function(e) {
-            let ele = document.createElement("img");
-            ele.src = url;
-            ele.style.display = "none";
-            video.parentNode?.appendChild(ele);
+            createBeacon(video, url);
         },
         {once: true});
     }
@@ -23,12 +20,7 @@ function setTrackingUrls(video: HTMLVideoElement, vastObject: VASTObject) {
         for (let [point, url] of vastObject.trackingMap) {
             let loop = function() {
                 if (video.currentTime >= point) {
-                    let ele = document.createElement("img");
-                    ele.src = url;
-                    ele.style.display = "none";
-                    video.parentNode?.appendChild(ele);
-                    console.log("[DEBUG] tracking beacon sent: " + url);
-
+                    createBeacon(video, url);
                     return;
                 }
                 requestAnimationFrame(loop);
@@ -36,6 +28,30 @@ function setTrackingUrls(video: HTMLVideoElement, vastObject: VASTObject) {
             requestAnimationFrame(loop);
         }
     });
+}
+
+function createBeacon(parent: HTMLElement, url: string | null) {
+    if (!url) return;
+
+    let date = new Date();
+    let ele = document.createElement("img");
+    ele.src = url.replace(/\[TIMESTAMP\]/, date.toISOString());
+    ele.style.display = "none";
+    parent.prepend(ele);
+
+    console.log("[DEBUG] beacon sent: " + url);
+}
+
+export function sendError(urls: string[] | null, errorCode: number) {
+    if (!urls) return;
+
+    for (let url of urls) {
+        let ele = document.createElement("img");
+        ele.src = url.replace(/\[ERRORCODE\]/, errorCode.toString());
+        ele.style.display = "none";
+        document.body.prepend(ele);
+        console.log("[DEBUG] error beacon sent: " + url);
+    }
 }
 
 export function setBeacons(video: HTMLVideoElement, vastObject: VASTObject) {

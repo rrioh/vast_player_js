@@ -7,7 +7,7 @@ export interface InlineObject {
 }
 
 export interface VASTObject {
-    errorUrl: string;
+    errorUrls: string[];
     impressionUrls: string[];
     adTitle: string;
     trackingMap: Map<number, string>;
