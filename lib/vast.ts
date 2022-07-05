@@ -1,5 +1,5 @@
 import { convertTimeToSecond } from "./util";
-import { VastUtil, VASTObject } from "../interface/interface";
+import { VastUtil, VASTObject, IconObject } from "../interface/interface";
 import { sendError } from "./beacon";
 import { ErrorCode } from "./macro";
 
@@ -99,6 +99,9 @@ class Vast implements VastUtil {
         const trackingsDoc = linearDoc.querySelectorAll(":scope>TrackingEvents>Tracking");
         const trackingMap = this.createTrackingObject(trackingsDoc, duration);
 
+        const iconsDoc = linearDoc.querySelectorAll(":scope>Icons>Icon");
+        const iconObjects = this.createIconObject(iconsDoc);
+
         const mediaFilesDoc = linearDoc.querySelectorAll(":scope>MediaFiles>MediaFile");
         if (!mediaFilesDoc) {
             sendError(this.errorUrls, ErrorCode.XMLParseError);
@@ -118,7 +121,8 @@ class Vast implements VastUtil {
             errorUrls: this.errorUrls,
             impressionUrls: [impressionUrl],
             adTitle: adTitle,
-            trackingMap: trackingMap,
+            trackings: trackingMap,
+            icons: iconObjects,
             mediaFileUrl: mediaFileUrl,
             clickThroughUrl: clickThroughUrl
         }
@@ -148,6 +152,62 @@ class Vast implements VastUtil {
         });
 
         return trackingMap;
+    }
+
+    createIconObject(iconsDoc: NodeList): IconObject[] {
+        let iconObjects: IconObject[] = [];
+        for (let icon of iconsDoc) {
+            let iconEle = icon as Element;
+
+            let iconObject: IconObject;
+            let width = iconEle.getAttribute("width") || "10";
+            let height = iconEle.getAttribute("height") || "10";
+            let x = "0px";
+            let xPosition = iconEle.getAttribute("xPosition");
+            if(xPosition) {
+                if (xPosition === "right") {
+                    x = "right";
+                } else {
+                    x = xPosition + "px";
+                }
+            }
+            let y = "0px";
+            let yPosition = iconEle.getAttribute("yPosition");
+            if(yPosition) {
+                if (yPosition === "bottom") {
+                    y = "bottom";
+                } else {
+                    y = yPosition + "px";
+                }
+            }
+            let offset = iconEle.getAttribute("offset");
+            let start = 0;
+            if (offset) start = convertTimeToSecond(offset);
+            let duration = iconEle.getAttribute("duration");
+            let end = null;
+            if (duration) end = convertTimeToSecond(duration);
+
+            const staticResource = iconEle.querySelector(":scope>StaticResource");
+            if (!staticResource || !staticResource.textContent) continue;
+            const iconClickThrough = iconEle.querySelector(":scope>IconClicks>IconClickThrough");
+            if (!iconClickThrough || !iconClickThrough.textContent) continue;
+            const iconClickTracking = iconEle.querySelector(":scope>IconClicks>IconClickTracking");
+            if (!iconClickTracking || !iconClickTracking.textContent) continue;
+
+            iconObjects.push({
+                width: width,
+                height: height,
+                xPosition: x,
+                yPosition: y,
+                start: start,
+                end: end,
+                imgUrl: staticResource.textContent,
+                clickThroughtUrl: iconClickThrough.textContent,
+                clickTrackingUrl: iconClickTracking.textContent
+            });
+        }
+
+        return iconObjects;
     }
 }
 

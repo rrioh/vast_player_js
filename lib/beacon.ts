@@ -17,7 +17,7 @@ function setVideoClickThroughUrl(video: HTMLVideoElement, url: string) {
 
 function setTrackingUrls(video: HTMLVideoElement, vastObject: VASTObject) {
     video.addEventListener("loadedmetadata", function(e) {
-        for (let [point, url] of vastObject.trackingMap) {
+        for (let [point, url] of vastObject.trackings) {
             if (point === "pause") {
                 video.addEventListener("pause", function (e) {
                     createBeacon(video,url);
