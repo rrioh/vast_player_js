@@ -108,6 +108,7 @@ class VastExecutor implements Executor {
         video.muted = true;
         video.autoplay = true;
 
+        // loadedmetadataイベント後でないとdurationが取れない
         video.addEventListener("loadedmetadata", function(e) {
             let progressbar = iDoc.getElementById("progress_bar")!;
             let barAnimationLoop = function() {
@@ -121,6 +122,15 @@ class VastExecutor implements Executor {
         setBeacons(video, vastObject);
 
         vastVideoDiv.appendChild(video);
+
+        // アイコン（ひとまずのハードコーディング）
+        let img = document.createElement("img");
+        img.width = 10;
+        img.height = 10;
+        img.style.left = "10px";
+        img.style.top = "10px";
+        img.style.position = "fixed";
+        vastVideoDiv.appendChild(img);
     }
 }
 

@@ -18,14 +18,18 @@ function setVideoClickThroughUrl(video: HTMLVideoElement, url: string) {
 function setTrackingUrls(video: HTMLVideoElement, vastObject: VASTObject) {
     video.addEventListener("loadedmetadata", function(e) {
         for (let [point, url] of vastObject.trackingMap) {
-            let loop = function() {
-                if (video.currentTime >= point) {
-                    createBeacon(video, url);
-                    return;
-                }
-                requestAnimationFrame(loop);
-            };
-            requestAnimationFrame(loop);
+            if (point === "pause") {
+                video.addEventListener("pause", function (e) {
+                    createBeacon(video,url);
+                });
+            } else if (typeof point === "number") {
+                video.addEventListener("timeupdate", function timeBeaconEvent(e) {
+                    if (video.currentTime >= point) {
+                        createBeacon(video, url);
+                        video.removeEventListener("timeupdate", timeBeaconEvent);
+                    }
+                });
+            }
         }
     });
 }

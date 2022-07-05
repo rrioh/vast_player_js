@@ -126,8 +126,8 @@ class Vast implements VastUtil {
         return vastObject;
     }
  
-    createTrackingObject(trackingsDoc: NodeList, duration: number) {
-        const trackingMap = new Map<number, string>();
+    createTrackingObject(trackingsDoc: NodeList, duration: number): Map<number | string, string> {
+        const trackingMap = new Map<number | string, string>();
         trackingsDoc.forEach(function(tracking) {
             if (!tracking.textContent) return;
             const event = (tracking as Element).getAttribute("event");
@@ -139,7 +139,11 @@ class Vast implements VastUtil {
                 trackingMap.set(offsetSecond, tracking.textContent);
             } else {
                 const event_point = TRACKING_EVENT_POINT.get(event);
-                if (event_point != undefined) trackingMap.set(event_point * duration, tracking.textContent);
+                if (event_point != undefined) {
+                    trackingMap.set(event_point * duration, tracking.textContent);
+                } else {
+                    trackingMap.set(event, tracking.textContent);
+                }
             }
         });
 
