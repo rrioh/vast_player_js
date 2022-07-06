@@ -34,7 +34,7 @@ function setTrackingUrls(video: HTMLVideoElement, vastObject: VASTObject) {
     });
 }
 
-function createBeacon(parent: HTMLElement, url: string | null) {
+export function createBeacon(parent: HTMLElement, url: string | null) {
     if (!url) return;
 
     let date = new Date();

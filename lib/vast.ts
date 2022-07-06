@@ -159,14 +159,13 @@ class Vast implements VastUtil {
         for (let icon of iconsDoc) {
             let iconEle = icon as Element;
 
-            let iconObject: IconObject;
-            let width = iconEle.getAttribute("width") || "10";
-            let height = iconEle.getAttribute("height") || "10";
+            let width = parseInt(iconEle.getAttribute("width") || "10") || 10;
+            let height = parseInt(iconEle.getAttribute("height") || "10") || 10;
             let x = "0px";
             let xPosition = iconEle.getAttribute("xPosition");
             if(xPosition) {
-                if (xPosition === "right") {
-                    x = "right";
+                if (xPosition === "left" || xPosition === "right") {
+                    x = xPosition;
                 } else {
                     x = xPosition + "px";
                 }
@@ -174,8 +173,8 @@ class Vast implements VastUtil {
             let y = "0px";
             let yPosition = iconEle.getAttribute("yPosition");
             if(yPosition) {
-                if (yPosition === "bottom") {
-                    y = "bottom";
+                if (yPosition === "top" || yPosition === "bottom") {
+                    y = yPosition;
                 } else {
                     y = yPosition + "px";
                 }
@@ -185,14 +184,12 @@ class Vast implements VastUtil {
             if (offset) start = convertTimeToSecond(offset);
             let duration = iconEle.getAttribute("duration");
             let end = null;
-            if (duration) end = convertTimeToSecond(duration);
+            if (duration) end = convertTimeToSecond(duration) + start;
 
             const staticResource = iconEle.querySelector(":scope>StaticResource");
             if (!staticResource || !staticResource.textContent) continue;
             const iconClickThrough = iconEle.querySelector(":scope>IconClicks>IconClickThrough");
-            if (!iconClickThrough || !iconClickThrough.textContent) continue;
             const iconClickTracking = iconEle.querySelector(":scope>IconClicks>IconClickTracking");
-            if (!iconClickTracking || !iconClickTracking.textContent) continue;
 
             iconObjects.push({
                 width: width,
@@ -202,8 +199,8 @@ class Vast implements VastUtil {
                 start: start,
                 end: end,
                 imgUrl: staticResource.textContent,
-                clickThroughtUrl: iconClickThrough.textContent,
-                clickTrackingUrl: iconClickTracking.textContent
+                clickThroughtUrl: iconClickThrough?.textContent ?? null,
+                clickTrackingUrl: iconClickTracking?.textContent ?? null
             });
         }
 

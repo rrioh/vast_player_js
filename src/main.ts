@@ -1,5 +1,6 @@
 import vast from "../lib/vast";
 import { setBeacons } from "../lib/beacon";
+import { setIcons } from "../lib/icon";
 
 const container = `
 <!DOCTYPE html>
@@ -9,8 +10,8 @@ const container = `
     <body style="margin:0;">
         <div id="vast_video_container">
             <div id="vast_video" style="width:300px;height:168.75px;"></div>
-            <div id="progress_bar" style="width:50%;height:2px;background-color:gray;"></div>
-            <div id="ad_title" style="margin:0;width:298px;height:77.25px;background-color:#dcdcdc;"></div>
+            <div id="progress_bar" style="width:50%;height:3px;background-color:gray;"></div>
+            <div id="ad_title" style="margin:0;width:300px;height:78.25px;background-color:#dcdcdc;"></div>
         </div>
     </body>
 </html>
@@ -34,15 +35,15 @@ const inlineVastSample = `
           <Linear>
             <Duration>00:00:15</Duration>
             <MediaFiles>
-              <MediaFile delivery="progressive" type="video/mp4" width="1920" height="1080"><![CDATA[https://s3-ap-northeast-1.amazonaws.com/adstir-stage-js/video/AdStir-MOVIE-JP-15.mp4]]></MediaFile>
+              <MediaFile delivery="progressive" type="video/mp4" width="1920" height="1080"><![CDATA[https://static-image-hmr.s3.ap-northeast-1.amazonaws.com/exmo.mp4]]></MediaFile>
             </MediaFiles>
             <VideoClicks>
               <ClickThrough><![CDATA[https://mt.united.jp?is=test]]></ClickThrough>
               <ClickTracking><![CDATA[https://inline.test.example/videoclicktracking?clientTime=[TIMESTAMP]]]></ClickTracking>
             </VideoClicks>
             <Icons>
-              <Icon program="nend" width="10" height="10" xPosition="right" yPosition="top">
-                <StaticResource creativeType="image/png"><![CDATA[https://s3-ap-northeast-1.amazonaws.com/adstir-stage-js/optout/i1.png]]></StaticResource>
+              <Icon program="nend" width="10" height="10" xPosition="right" yPosition="top" offset="00:00:05" duration="00:00:06">
+                <StaticResource creativeType="image/png"><![CDATA[https://static-image-hmr.s3.ap-northeast-1.amazonaws.com/i.png]]></StaticResource>
                 <IconClicks>
                   <IconClickThrough><![CDATA[https://ja.ad-stir.com/sp/optout.html]]></IconClickThrough>
                 </IconClicks>
@@ -103,8 +104,8 @@ class VastExecutor implements Executor {
         let vastVideoDiv = iDoc.getElementById("vast_video")!;
         let video = document.createElement("video");
         video.src = vastObject.mediaFileUrl;
-        video.width = 300;
-        video.height = 168.75;
+        video.style.width = "100%";
+        video.style.height = "100%";
         video.muted = true;
         video.autoplay = true;
 
@@ -120,17 +121,9 @@ class VastExecutor implements Executor {
         });
 
         setBeacons(video, vastObject);
+        setIcons(video, vastVideoDiv, vastObject);
 
         vastVideoDiv.appendChild(video);
-
-        // アイコン（ひとまずのハードコーディング）
-        let img = document.createElement("img");
-        img.width = 10;
-        img.height = 10;
-        img.style.left = "10px";
-        img.style.top = "10px";
-        img.style.position = "fixed";
-        vastVideoDiv.appendChild(img);
     }
 }
 

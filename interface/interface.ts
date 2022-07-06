@@ -17,13 +17,13 @@ export interface VASTObject {
 }
 
 export interface IconObject {
-    width: string;
-    height: string;
+    width: number;
+    height: number;
     xPosition: string;
     yPosition: string;
     start: number;
     end: number | null;
     imgUrl: string;
-    clickThroughtUrl: string;
-    clickTrackingUrl: string;
+    clickThroughtUrl: string | null;
+    clickTrackingUrl: string | null;
 }
