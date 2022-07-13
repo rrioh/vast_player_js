@@ -11,7 +11,10 @@ const container = `
         <div id="vast_video_container">
             <div id="vast_video" style="width:300px;height:168.75px;"></div>
             <div id="progress_bar" style="width:50%;height:3px;background-color:gray;"></div>
-            <div id="ad_title" style="margin:0;width:300px;height:78.25px;background-color:#dcdcdc;"></div>
+            <div id="ad_text" style="margin:0;width:300px;height:78.25px;background-color:#dcdcdc;">
+                <div id="ad_title" style="font-size:15px;font-weight:bold;"></div>
+                <div id="ad_desc" style="font-size:10px;"></div>
+            </div>
         </div>
     </body>
 </html>
@@ -100,6 +103,10 @@ class VastExecutor implements Executor {
 
         let adTitleDiv = iDoc.getElementById("ad_title")!;
         adTitleDiv.textContent = vastObject.adTitle;
+        let adDescDiv = iDoc.getElementById("ad_desc")!;
+        if (vastObject.adDesc) {
+            adDescDiv.textContent = vastObject.adDesc;
+        }
 
         let vastVideoDiv = iDoc.getElementById("vast_video")!;
         let video = document.createElement("video");

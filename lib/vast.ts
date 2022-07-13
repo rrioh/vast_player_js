@@ -83,6 +83,12 @@ class Vast implements VastUtil {
         }
         const adTitle = adTitleDoc.textContent;
 
+        let adDesc: string | null = null;
+        const adDescDoc = inlineDoc.querySelector(":scope>Description");
+        if (adDescDoc && adDescDoc.textContent) {
+            adDesc = adDescDoc.textContent;
+        }
+
         const linearDoc = inlineDoc.querySelector(":scope>Creatives>Creative>Linear");
         if (!linearDoc) {
             sendError(this.errorUrls, ErrorCode.XMLParseError);
@@ -121,6 +127,7 @@ class Vast implements VastUtil {
             errorUrls: this.errorUrls,
             impressionUrls: [impressionUrl],
             adTitle: adTitle,
+            adDesc: adDesc,
             trackings: trackingMap,
             icons: iconObjects,
             mediaFileUrl: mediaFileUrl,
