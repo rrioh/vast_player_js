@@ -21,8 +21,8 @@ class Vast implements VastUtil {
 
     parseVast (sourceVast: string): VASTObject | null {
         try {
-            let vastDoc = this.parseVastXML(sourceVast);
-            let vastObject = this.createVastObject(vastDoc);
+            let vastEle = this.parseVastXML(sourceVast);
+            let vastObject = this.createVastObject(vastEle);
 
             return vastObject;
         } catch (e) {
@@ -40,88 +40,88 @@ class Vast implements VastUtil {
             throw new Error(parserError.textContent || "parse vast error");
         }
 
-        let vastDoc = xmlDoc.querySelector("VAST");
-        if (!vastDoc) {
+        let vastEle = xmlDoc.querySelector("VAST");
+        if (!vastEle) {
             throw new Error("VAST tag not found");
         }
 
-        return vastDoc;
+        return vastEle;
     }
 
-    createVastObject(vdoc: Element): VASTObject {
+    createVastObject(vEle: Element): VASTObject {
 
-        const rootErrorDoc = vdoc.querySelector(":scope>Error");
-        if (!rootErrorDoc) {
+        const rootErrorEle = vEle.querySelector(":scope>Error");
+        if (!rootErrorEle) {
             throw new Error("cannot parse root Error");
         }
-        if (rootErrorDoc.textContent) this.errorUrls.push(rootErrorDoc.textContent);
+        if (rootErrorEle.textContent) this.errorUrls.push(rootErrorEle.textContent);
 
-        const inlineDoc = vdoc.querySelector(":scope>Ad>InLine");
-        if (!inlineDoc) {
+        const inlineEle = vEle.querySelector(":scope>Ad>InLine");
+        if (!inlineEle) {
             sendError(this.errorUrls, ErrorCode.NoVASTResponseAfterWrapper);
             throw new Error("parse InLine error");
         }
 
-        const errorDoc = inlineDoc.querySelector(":scope>Error");
-        if (!errorDoc || !errorDoc.textContent) {
+        const errorEle = inlineEle.querySelector(":scope>Error");
+        if (!errorEle || !errorEle.textContent) {
             sendError(this.errorUrls, ErrorCode.XMLParseError);
             throw new Error("parse InLine Error error");
         }
-        if (errorDoc.textContent) this.errorUrls.push(errorDoc.textContent);
+        if (errorEle.textContent) this.errorUrls.push(errorEle.textContent);
 
-        const impDoc = inlineDoc.querySelector(":scope>Impression");
-        if (!impDoc || !impDoc.textContent) {
+        const impEle = inlineEle.querySelector(":scope>Impression");
+        if (!impEle || !impEle.textContent) {
             sendError(this.errorUrls, ErrorCode.XMLParseError);
             throw new Error("parse InLine Impression error");
         }
-        const impressionUrl = impDoc.textContent;
+        const impressionUrl = impEle.textContent;
 
-        const adTitleDoc = inlineDoc.querySelector(":scope>AdTitle");
-        if (!adTitleDoc || !adTitleDoc.textContent) {
+        const adTitleEle = inlineEle.querySelector(":scope>AdTitle");
+        if (!adTitleEle || !adTitleEle.textContent) {
             sendError(this.errorUrls, ErrorCode.XMLParseError);
             throw new Error("parse InLine AdTitle error");
         }
-        const adTitle = adTitleDoc.textContent;
+        const adTitle = adTitleEle.textContent;
 
         let adDesc: string | null = null;
-        const adDescDoc = inlineDoc.querySelector(":scope>Description");
-        if (adDescDoc && adDescDoc.textContent) {
-            adDesc = adDescDoc.textContent;
+        const adDescEle = inlineEle.querySelector(":scope>Description");
+        if (adDescEle && adDescEle.textContent) {
+            adDesc = adDescEle.textContent;
         }
 
-        const linearDoc = inlineDoc.querySelector(":scope>Creatives>Creative>Linear");
-        if (!linearDoc) {
+        const linearEle = inlineEle.querySelector(":scope>Creatives>Creative>Linear");
+        if (!linearEle) {
             sendError(this.errorUrls, ErrorCode.XMLParseError);
             throw new Error("parse InLine Linear error");
         }
 
-        const durationDoc = linearDoc.querySelector(":scope>Duration");
-        if (!durationDoc || !durationDoc.textContent) {
+        const durationEle = linearEle.querySelector(":scope>Duration");
+        if (!durationEle || !durationEle.textContent) {
             sendError(this.errorUrls, ErrorCode.XMLParseError);
             throw new Error("parse InLine Linear Duration error");
         }
-        const duration = convertTimeToSecond(durationDoc.textContent);
+        const duration = convertTimeToSecond(durationEle.textContent);
 
-        const trackingsDoc = linearDoc.querySelectorAll(":scope>TrackingEvents>Tracking");
-        const trackingMap = this.createTrackingObject(trackingsDoc, duration);
+        const trackingsEles = linearEle.querySelectorAll(":scope>TrackingEvents>Tracking");
+        const trackingMap = this.createTrackingObject(trackingsEles, duration);
 
-        const iconsDoc = linearDoc.querySelectorAll(":scope>Icons>Icon");
-        const iconObjects = this.createIconObject(iconsDoc);
+        const iconEles = linearEle.querySelectorAll(":scope>Icons>Icon");
+        const iconObjects = this.createIconObject(iconEles);
 
-        const mediaFilesDoc = linearDoc.querySelectorAll(":scope>MediaFiles>MediaFile");
-        if (!mediaFilesDoc) {
+        const mediaFileEles = linearEle.querySelectorAll(":scope>MediaFiles>MediaFile");
+        if (!mediaFileEles) {
             sendError(this.errorUrls, ErrorCode.XMLParseError);
             throw new Error("parse MediaFiles error");
         }
         // ひとまず1つ目のMediaFileのURLのみ取得
-        const mediaFileUrl = mediaFilesDoc[0]?.textContent!;
+        const mediaFileUrl = mediaFileEles[0]?.textContent!;
 
-        const clickThroughDoc = linearDoc.querySelector(":scope>VideoClicks>ClickThrough");
-        if (!clickThroughDoc || !clickThroughDoc.textContent) {
+        const clickThroughEle = linearEle.querySelector(":scope>VideoClicks>ClickThrough");
+        if (!clickThroughEle || !clickThroughEle.textContent) {
             sendError(this.errorUrls, ErrorCode.XMLParseError);
             throw new Error("parse InLine Linear ClickThrough error");
         }
-        const clickThroughUrl = clickThroughDoc.textContent;
+        const clickThroughUrl = clickThroughEle.textContent;
 
         const vastObject: VASTObject = {
             errorUrls: this.errorUrls,
@@ -137,9 +137,9 @@ class Vast implements VastUtil {
         return vastObject;
     }
  
-    createTrackingObject(trackingsDoc: NodeList, duration: number): Map<number | string, string> {
+    createTrackingObject(trackingEles: NodeList, duration: number): Map<number | string, string> {
         const trackingMap = new Map<number | string, string>();
-        trackingsDoc.forEach(function(tracking) {
+        trackingEles.forEach(function(tracking) {
             if (!tracking.textContent) return;
             const event = (tracking as Element).getAttribute("event");
             if (!event) return;
@@ -161,9 +161,9 @@ class Vast implements VastUtil {
         return trackingMap;
     }
 
-    createIconObject(iconsDoc: NodeList): IconObject[] {
+    createIconObject(iconEles: NodeList): IconObject[] {
         let iconObjects: IconObject[] = [];
-        for (let icon of iconsDoc) {
+        for (let icon of iconEles) {
             let iconEle = icon as Element;
 
             let width = parseInt(iconEle.getAttribute("width") || "10") || 10;
