@@ -32,7 +32,7 @@ class Vast implements VastUtil {
         }
     }
 
-    parseVastXML (sourceVast: string) {
+    parseVastXML (sourceVast: string): Element {
         const parser = new DOMParser();
         let xmlDoc: XMLDocument  = parser.parseFromString(sourceVast,"application/xml");
         let parserError = xmlDoc.querySelector("parsererror");
@@ -51,10 +51,7 @@ class Vast implements VastUtil {
     createVastObject(vEle: Element): VASTObject {
 
         const rootErrorEle = vEle.querySelector(":scope>Error");
-        if (!rootErrorEle) {
-            throw new Error("cannot parse root Error");
-        }
-        if (rootErrorEle.textContent) this.errorUrls.push(rootErrorEle.textContent);
+        if (rootErrorEle && rootErrorEle.textContent) this.errorUrls.push(rootErrorEle.textContent);
 
         const inlineEle = vEle.querySelector(":scope>Ad>InLine");
         if (!inlineEle) {
@@ -63,11 +60,7 @@ class Vast implements VastUtil {
         }
 
         const errorEle = inlineEle.querySelector(":scope>Error");
-        if (!errorEle || !errorEle.textContent) {
-            sendError(this.errorUrls, ErrorCode.XMLParseError);
-            throw new Error("parse InLine Error error");
-        }
-        if (errorEle.textContent) this.errorUrls.push(errorEle.textContent);
+        if (errorEle && errorEle.textContent) this.errorUrls.push(errorEle.textContent);
 
         const impEle = inlineEle.querySelector(":scope>Impression");
         if (!impEle || !impEle.textContent) {
@@ -116,12 +109,24 @@ class Vast implements VastUtil {
         // ひとまず1つ目のMediaFileのURLのみ取得
         const mediaFileUrl = mediaFileEles[0]?.textContent!;
 
-        const clickThroughEle = linearEle.querySelector(":scope>VideoClicks>ClickThrough");
-        if (!clickThroughEle || !clickThroughEle.textContent) {
-            sendError(this.errorUrls, ErrorCode.XMLParseError);
-            throw new Error("parse InLine Linear ClickThrough error");
+        const videoClicksEle = linearEle.querySelector(":scope>VideoClicks");
+        let clickThroughUrl: string | null = null;
+        let clickTrackingUrls: string[] = [];
+        if (videoClicksEle) {
+            const clickThroughEle = videoClicksEle.querySelector(":scope>ClickThrough");
+            if (!clickThroughEle || !clickThroughEle.textContent) {
+                sendError(this.errorUrls, ErrorCode.XMLParseError);
+                throw new Error("parse InLine Linear ClickThrough error");
+            }
+            clickThroughUrl = clickThroughEle.textContent;
+
+            const clickTrackingEles = videoClicksEle.querySelectorAll(":scope>ClickTracking");
+            for (let clickTrackingEle of clickTrackingEles) {
+                if (clickTrackingEle.textContent) {
+                    clickTrackingUrls.push(clickTrackingEle.textContent);
+                }
+            }
         }
-        const clickThroughUrl = clickThroughEle.textContent;
 
         const vastObject: VASTObject = {
             errorUrls: this.errorUrls,
@@ -131,7 +136,8 @@ class Vast implements VastUtil {
             trackings: trackingMap,
             icons: iconObjects,
             mediaFileUrl: mediaFileUrl,
-            clickThroughUrl: clickThroughUrl
+            clickThroughUrl: clickThroughUrl,
+            clickTrackingUrls: clickTrackingUrls,
         }
 
         return vastObject;

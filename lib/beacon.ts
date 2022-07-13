@@ -9,10 +9,18 @@ function setImpressionUrl(video: HTMLVideoElement, urls: string[]) {
     }
 }
 
-function setVideoClickThroughUrl(video: HTMLVideoElement, url: string) {
+function setVideoClickThroughUrl(video: HTMLVideoElement, url: string | null) {
+    if (!url) return;
+
     video.addEventListener("click", function(e) {
         open(url, "_blank");
     });
+}
+
+function setVideoClickTrackingUrls(video: HTMLVideoElement, urls: string[]) {
+    for ( let url of urls) {
+        createBeacon(video, url);
+    }
 }
 
 function setTrackingUrls(video: HTMLVideoElement, vastObject: VASTObject) {
@@ -61,5 +69,6 @@ export function sendError(urls: string[] | null, errorCode: number) {
 export function setBeacons(video: HTMLVideoElement, vastObject: VASTObject) {
     setImpressionUrl(video, vastObject.impressionUrls);
     setVideoClickThroughUrl(video, vastObject.clickThroughUrl);
+    setVideoClickTrackingUrls(video, vastObject.clickTrackingUrls);
     setTrackingUrls(video, vastObject);
 }

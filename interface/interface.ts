@@ -14,7 +14,8 @@ export interface VASTObject {
     trackings: Map<number | string, string>;
     icons: IconObject[];
     mediaFileUrl: string;
-    clickThroughUrl: string;
+    clickThroughUrl: string | null;
+    clickTrackingUrls: string[];
 }
 
 export interface IconObject {
