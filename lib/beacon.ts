@@ -19,7 +19,9 @@ function setVideoClickThroughUrl(video: HTMLVideoElement, url: string | null) {
 
 function setVideoClickTrackingUrls(video: HTMLVideoElement, urls: string[]) {
     for ( let url of urls) {
-        createBeacon(video, url);
+        video.addEventListener("click", function(e) {
+            createBeacon(video, url);
+        });
     }
 }
 
@@ -52,7 +54,8 @@ export function createBeacon(parent: HTMLElement, url: string | null) {
 
     let date = new Date();
     let ele = document.createElement("img");
-    ele.src = url.replace(/\[TIMESTAMP\]/, date.toISOString());
+    url = url.replace(/\[TIMESTAMP\]/, date.toISOString());
+    ele.src = url;
     ele.style.display = "none";
     parent.prepend(ele);
 

@@ -130,6 +130,24 @@ class VastExecutor implements Executor {
         setBeacons(video, vastObject);
         setIcons(video, vastVideoDiv, vastObject);
 
+        // IntersectionObserver
+        // 50%画面内に入ったら再生、出たら停止
+        const options = {
+            rootMargin: "0px",
+            threshold: 0.5
+        }
+        function callback(entries: IntersectionObserverEntry[]) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    video.play();
+                } else {
+                    video.pause();
+                }
+            });
+        }
+        const observer = new IntersectionObserver(callback, options);
+        observer.observe(video);
+
         vastVideoDiv.appendChild(video);
     }
 }
