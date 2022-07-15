@@ -26,6 +26,6 @@ export interface IconObject {
     start: number;
     end: number | null;
     imgUrl: string;
-    clickThroughtUrl: string | null;
+    clickThroughUrl: string | null;
     clickTrackingUrl: string | null;
 }

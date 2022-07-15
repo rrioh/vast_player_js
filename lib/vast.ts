@@ -212,7 +212,7 @@ class Vast implements VastUtil {
                 start: start,
                 end: end,
                 imgUrl: staticResource.textContent,
-                clickThroughtUrl: iconClickThrough?.textContent ?? null,
+                clickThroughUrl: iconClickThrough?.textContent ?? null,
                 clickTrackingUrl: iconClickTracking?.textContent ?? null
             });
         }

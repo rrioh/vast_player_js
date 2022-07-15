@@ -27,11 +27,11 @@ export function setIcons(video: HTMLVideoElement, iconParent: HTMLElement, vastO
             if (iconObj.clickTrackingUrl) {
                 createBeacon(video, iconObj.clickTrackingUrl);
             }
-            if (iconObj.clickThroughtUrl) {
-                open(iconObj.clickThroughtUrl, "_blank");
+            if (iconObj.clickThroughUrl) {
+                open(iconObj.clickThroughUrl, "_blank");
             }
         });
-        
+
         video.addEventListener("timeupdate", function timeIconEvent(e) {
             if (!iconParent.contains(icon) && video.currentTime >= iconObj.start) {
                 iconParent.appendChild(icon);
@@ -41,5 +41,14 @@ export function setIcons(video: HTMLVideoElement, iconParent: HTMLElement, vastO
                 video.removeEventListener("timeupdate", timeIconEvent);
             }
         });
+
+        // end未定義のiconの削除
+        if (!iconObj.end) {
+            video.addEventListener("ended", function(e) {
+                if (iconParent.contains(icon)) {
+                    iconParent.removeChild(icon);
+                }
+            });
+        }
     }
 }
