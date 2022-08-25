@@ -1,9 +1,10 @@
 import { VASTObject } from "../interface/interface";
+import { MacroReplacer } from "./macro";
 
-function setImpressionUrl(video: HTMLVideoElement, urls: string[]) {
+function setImpressionUrl(video: HTMLVideoElement, urls: string[], macroReplacer: MacroReplacer) {
     for (let url of urls) {
         video.addEventListener("canplay", function(e) {
-            createBeacon(video, url);
+            createBeacon(video, url, macroReplacer);
         },
         {once: true});
     }
@@ -17,30 +18,30 @@ function setVideoClickThroughUrl(video: HTMLVideoElement, url: string | null) {
     });
 }
 
-function setVideoClickTrackingUrls(video: HTMLVideoElement, urls: string[]) {
+function setVideoClickTrackingUrls(video: HTMLVideoElement, urls: string[], macroReplacer: MacroReplacer) {
     for ( let url of urls) {
         video.addEventListener("click", function(e) {
-            createBeacon(video, url);
+            createBeacon(video, url, macroReplacer);
         });
     }
 }
 
-function setTrackingUrls(video: HTMLVideoElement, vastObject: VASTObject) {
+function setTrackingUrls(video: HTMLVideoElement, vastObject: VASTObject, macroReplacer: MacroReplacer) {
     video.addEventListener("loadedmetadata", function(e) {
         for (let [point, url] of vastObject.trackings) {
             if (point == "loaded") {
                 video.addEventListener("canplay", function (e) {
-                    createBeacon(video, url);
+                    createBeacon(video, url, macroReplacer);
                 },
                 {once: true});
             } else if (point === "pause") {
                 video.addEventListener("pause", function (e) {
-                    createBeacon(video,url);
+                    createBeacon(video,url, macroReplacer);
                 });
             } else if (typeof point === "number") {
                 video.addEventListener("timeupdate", function timeBeaconEvent(e) {
                     if (video.currentTime >= point) {
-                        createBeacon(video, url);
+                        createBeacon(video, url, macroReplacer);
                         video.removeEventListener("timeupdate", timeBeaconEvent);
                     }
                 });
@@ -49,12 +50,12 @@ function setTrackingUrls(video: HTMLVideoElement, vastObject: VASTObject) {
     });
 }
 
-export function createBeacon(parent: HTMLElement, url: string | null) {
+export function createBeacon(parent: HTMLElement, url: string | null, macroReplacer: MacroReplacer) {
     if (!url) return;
 
     let date = new Date();
     let ele = document.createElement("img");
-    url = url.replace(/\[TIMESTAMP\]/, date.toISOString());
+    macroReplacer(url, null);
     ele.src = url;
     ele.style.display = "none";
     parent.prepend(ele);
@@ -74,9 +75,9 @@ export function sendError(urls: string[] | null, errorCode: number) {
     }
 }
 
-export function setBeacons(video: HTMLVideoElement, vastObject: VASTObject) {
-    setImpressionUrl(video, vastObject.impressionUrls);
+export function setBeacons(video: HTMLVideoElement, vastObject: VASTObject, macroReplacer: MacroReplacer) {
+    setImpressionUrl(video, vastObject.impressionUrls, macroReplacer);
     setVideoClickThroughUrl(video, vastObject.clickThroughUrl);
-    setVideoClickTrackingUrls(video, vastObject.clickTrackingUrls);
-    setTrackingUrls(video, vastObject);
+    setVideoClickTrackingUrls(video, vastObject.clickTrackingUrls, macroReplacer);
+    setTrackingUrls(video, vastObject, macroReplacer);
 }

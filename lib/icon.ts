@@ -1,7 +1,8 @@
 import { VASTObject } from "../interface/interface";
 import { createBeacon } from "./beacon";
+import { MacroReplacer } from "./macro";
 
-export function setIcons(video: HTMLVideoElement, iconParent: HTMLElement, vastObject: VASTObject) {
+export function setIcons(video: HTMLVideoElement, iconParent: HTMLElement, vastObject: VASTObject, macroReplacer: MacroReplacer) {
     for (let iconObj of vastObject.icons) {
         let icon = document.createElement("img");
         icon.src = iconObj.imgUrl;
@@ -25,7 +26,7 @@ export function setIcons(video: HTMLVideoElement, iconParent: HTMLElement, vastO
 
         icon.addEventListener("click", function(e) {
             if (iconObj.clickTrackingUrl) {
-                createBeacon(video, iconObj.clickTrackingUrl);
+                createBeacon(video, iconObj.clickTrackingUrl, macroReplacer);
             }
             if (iconObj.clickThroughUrl) {
                 open(iconObj.clickThroughUrl, "_blank");

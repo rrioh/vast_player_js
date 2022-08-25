@@ -1,6 +1,7 @@
 import vast from "../lib/vast";
 import { setBeacons } from "../lib/beacon";
 import { setIcons } from "../lib/icon";
+import { createReplacer } from "../lib/macro";
 
 const container = `
 <!DOCTYPE html>
@@ -127,8 +128,9 @@ class VastExecutor implements Executor {
             requestAnimationFrame(barAnimationLoop);
         });
 
-        setBeacons(video, vastObject);
-        setIcons(video, vastVideoDiv, vastObject);
+        const macroReplacer = createReplacer(vastVideoDiv);
+        setBeacons(video, vastObject, macroReplacer);
+        setIcons(video, vastVideoDiv, vastObject, macroReplacer);
 
         // IntersectionObserver
         // 50%画面内に入ったら再生、出たら停止
