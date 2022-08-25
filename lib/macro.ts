@@ -45,12 +45,13 @@ export enum ErrorCode {
     GeneralInteractiveCreativeFileError
 }
 
-export type MacroReplacer = (target: string, errorCode: ErrorCode | null) => void;
+export type MacroReplacer = (target: string, errorCode: ErrorCode | null) => string;
 
 export function createReplacer(videoParent: HTMLElement): MacroReplacer {
     let replaceMap = new Map<string, string | (() => string)>();
-    let date = new Date();
-    replaceMap.set('[TIMESTAMP]', date.toISOString());
+
+    // time stamp
+    replaceMap.set("[TIMESTAMP]", getTimestamp());
 
     // inview ratio
     const inviewRatioMgr: {
@@ -70,15 +71,29 @@ export function createReplacer(videoParent: HTMLElement): MacroReplacer {
     }
     const observer = new IntersectionObserver(callback, options);
     observer.observe(videoParent);
-    replaceMap.set('[INVIEW_RATIO]', getInviewRatio(inviewRatioMgr));
+    replaceMap.set("[INVIEW_RATIO]", getInviewRatio(inviewRatioMgr));
 
     return (target: string, errorCode: ErrorCode | null) => {
+        console.log("REPLACE MAP:");
+        console.log(replaceMap);
         if (errorCode) {
             replaceMap.set("[ERRORCODE]", errorCode.toString())
         }
         replaceMap.forEach((value, key) => {
+            console.log("REPLACER KEY: "+key);
+            console.log("REPLACER VALUE: ");
+            console.log(value);
             target = target.replace(key, typeof value === "function" ? value() : value);
         });
+
+        return target;
+    };
+}
+
+function getTimestamp(): () => string {
+    return () => {
+        let date = new Date();
+        return date.toISOString();
     };
 }
 

@@ -1,7 +1,4 @@
-import vast from "../lib/vast";
-import { setBeacons } from "../lib/beacon";
-import { setIcons } from "../lib/icon";
-import { createReplacer } from "../lib/macro";
+import * as lib from "../lib/index";
 
 const container = `
 <!DOCTYPE html>
@@ -32,8 +29,8 @@ const inlineVastSample = `
       <AdTitle><![CDATA[スマートフォンアドネットワーク「nend」]]></AdTitle>
       <Description><![CDATA[静止画バナーから動画リワード/動画インターステイシャル/動画ネイティブに対応しています]]></Description>
       <Advertiser><![CDATA[株式会社ファンコミュニケーションズ]]></Advertiser>
-      <Error><![CDATA[https://inline.test.example/error?code=[ERRORCODE]&clientTime=[TIMESTAMP]]]></Error>
-      <Impression id="nend"><![CDATA[https://inline.test.example/impression?clientTime=[TIMESTAMP]]]></Impression>
+      <Error><![CDATA[https://inline.test.example/error?code=[ERRORCODE]&clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Error>
+      <Impression id="nend"><![CDATA[https://inline.test.example/impression?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Impression>
       <Creatives>
         <Creative adId="7245" sequence="1">
           <Linear>
@@ -43,7 +40,7 @@ const inlineVastSample = `
             </MediaFiles>
             <VideoClicks>
               <ClickThrough><![CDATA[https://mt.united.jp?is=test]]></ClickThrough>
-              <ClickTracking><![CDATA[https://inline.test.example/videoclicktracking?clientTime=[TIMESTAMP]]]></ClickTracking>
+              <ClickTracking><![CDATA[https://inline.test.example/videoclicktracking?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></ClickTracking>
             </VideoClicks>
             <Icons>
               <Icon program="nend" width="10" height="10" xPosition="right" yPosition="top" offset="00:00:05" duration="00:00:06">
@@ -54,14 +51,14 @@ const inlineVastSample = `
               </Icon>
             </Icons>
             <TrackingEvents>
-              <Tracking event="pause"><![CDATA[https://inline.test.example/pause?clientTime=[TIMESTAMP]]]></Tracking>
-              <Tracking event="skip"><![CDATA[https://inline.test.example/skip?clientTime=[TIMESTAMP]]]></Tracking>
-              <Tracking event="start"><![CDATA[https://inline.test.example/start?clientTime=[TIMESTAMP]]]></Tracking>
-              <Tracking event="firstQuartile"><![CDATA[https://inline.test.example/firstQuartile?clientTime=[TIMESTAMP]]]></Tracking>
-              <Tracking event="midpoint"><![CDATA[https://inline.test.example/midpoint?clientTime=[TIMESTAMP]]]></Tracking>
-              <Tracking event="thirdQuartile"><![CDATA[https://inline.test.example/thirdQuartile?clientTime=[TIMESTAMP]]]></Tracking>
-              <Tracking event="complete"><![CDATA[https://inline.test.example/complete?clientTime=[TIMESTAMP]]]></Tracking>
-              <Tracking event="complete"><![CDATA[https://inline.test.example/complete2?clientTime=[TIMESTAMP]]]></Tracking>
+              <Tracking event="pause"><![CDATA[https://inline.test.example/pause?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Tracking>
+              <Tracking event="skip"><![CDATA[https://inline.test.example/skip?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Tracking>
+              <Tracking event="start"><![CDATA[https://inline.test.example/start?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Tracking>
+              <Tracking event="firstQuartile"><![CDATA[https://inline.test.example/firstQuartile?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Tracking>
+              <Tracking event="midpoint"><![CDATA[https://inline.test.example/midpoint?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Tracking>
+              <Tracking event="thirdQuartile"><![CDATA[https://inline.test.example/thirdQuartile?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://inline.test.example/complete?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://inline.test.example/complete2?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Tracking>
             </TrackingEvents>
           </Linear>
         </Creative>
@@ -85,7 +82,7 @@ class VastExecutor implements Executor {
     startPlayer(sourceVast: string) {
         console.log("setPlayer started...");
         sourceVast = inlineVastSample;
-        const vastObject = vast.parseVast(sourceVast);
+        const vastObject = lib.vast.parseVast(sourceVast);
         if (!vastObject) {
             return;
         }
@@ -128,9 +125,9 @@ class VastExecutor implements Executor {
             requestAnimationFrame(barAnimationLoop);
         });
 
-        const macroReplacer = createReplacer(vastVideoDiv);
-        setBeacons(video, vastObject, macroReplacer);
-        setIcons(video, vastVideoDiv, vastObject, macroReplacer);
+        const macroReplacer = lib.createReplacer(vastVideoDiv);
+        lib.setBeacons(video, vastObject, macroReplacer);
+        lib.setIcons(video, vastVideoDiv, vastObject, macroReplacer);
 
         // IntersectionObserver
         // 50%画面内に入ったら再生、出たら停止

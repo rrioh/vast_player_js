@@ -221,6 +221,4 @@ class Vast implements VastUtil {
     }
 }
 
-const vast = new Vast();
-
-export default vast;
+export const vast = new Vast();

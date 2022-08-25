@@ -55,7 +55,7 @@ export function createBeacon(parent: HTMLElement, url: string | null, macroRepla
 
     let date = new Date();
     let ele = document.createElement("img");
-    macroReplacer(url, null);
+    url = macroReplacer(url, null);
     ele.src = url;
     ele.style.display = "none";
     parent.prepend(ele);
