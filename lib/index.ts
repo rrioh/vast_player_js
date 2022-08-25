@@ -1,4 +1,4 @@
-export { vast } from "./vast";
-export { setBeacons } from "./beacon";
-export { setIcons } from "./icon";
-export { createReplacer } from "./macro";
+export { vast } from "./domain/service/vast";
+export { setBeacons } from "./domain/service/beacon";
+export { setIcons } from "./domain/service/icon";
+export { createReplacer } from "./util/macro";

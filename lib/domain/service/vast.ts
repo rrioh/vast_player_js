@@ -1,7 +1,8 @@
-import { convertTimeToSecond } from "./util";
-import { VastUtil, VASTObject, IconObject } from "../interface/interface";
+import { VastUtil, VASTObject } from "../model/vast";
+import { IconObject } from "../model/icon";
 import { sendError } from "./beacon";
-import { ErrorCode } from "./macro";
+import { ErrorCode } from "../../util/macro";
+import { convertTimeToSecond } from "../../util/time";
 
 
 const TRACKING_EVENT_POINT = new Map<string, number>([

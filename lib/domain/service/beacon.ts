@@ -1,5 +1,5 @@
-import { VASTObject } from "../interface/interface";
-import { MacroReplacer } from "./macro";
+import { VASTObject } from "../model/vast";
+import { MacroReplacer } from "../../util/macro";
 
 function setImpressionUrl(video: HTMLVideoElement, urls: string[], macroReplacer: MacroReplacer) {
     for (let url of urls) {

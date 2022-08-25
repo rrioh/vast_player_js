@@ -1,6 +1,6 @@
-import { VASTObject } from "../interface/interface";
+import { VASTObject } from "../model/vast";
 import { createBeacon } from "./beacon";
-import { MacroReplacer } from "./macro";
+import { MacroReplacer } from "../../util/macro";
 
 export function setIcons(video: HTMLVideoElement, iconParent: HTMLElement, vastObject: VASTObject, macroReplacer: MacroReplacer) {
     for (let iconObj of vastObject.icons) {
