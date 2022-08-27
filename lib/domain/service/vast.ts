@@ -4,6 +4,7 @@ import { createIcons } from "./icon";
 import { ErrorCode } from "../../util/macro";
 import { convertTimeToSecond } from "../../util/time";
 
+const WRAPPER_MAX = 5;
 
 const TRACKING_EVENT_POINT = new Map<string, number>([
     ["start", 0],
@@ -20,9 +21,42 @@ class Vast implements VastUtil {
         this.errorUrls = [];
     }
 
-    parseVast (sourceVast: string): VASTObject | null {
+    private isWrapper(vEle: Element): boolean {
+        const wrapperEle = vEle.querySelector(":scope>Ad>Wrapper");
+        if (wrapperEle) {
+            return true;
+        }
+        return false;
+    }
+
+    private async nextVast(vEle: Element) {
+        const vastAdTagURIEle = vEle.querySelector(":scope>Ad>Wrapper>VASTAdTagURI");
+        if (!vastAdTagURIEle || !vastAdTagURIEle.textContent) {
+            throw new Error("next vast url error");
+        }
+
+        let url = vastAdTagURIEle.textContent;
+        const res = await fetch(url);
+        const data = await res.text();
+        return data;
+    }
+
+    async parseVast (sourceVast: string): Promise<VASTObject | null> {
         try {
             let vastEle = this.parseVastXML(sourceVast);
+            for (let i = 1; i <= WRAPPER_MAX; i++) {
+                if (this.isWrapper(vastEle)) {
+                    if (i == WRAPPER_MAX) {
+                        throw new Error("too many wrapper");
+                    }
+
+                    sourceVast = await this.nextVast(vastEle);
+                    vastEle = this.parseVastXML(sourceVast);
+                } else {
+                    break;
+                }
+            }
+
             let vastObject = this.createVastObject(vastEle);
 
             return vastObject;
