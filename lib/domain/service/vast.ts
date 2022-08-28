@@ -1,7 +1,7 @@
 import { VastUtil, VASTObject, ClickThrough, ClickTracking, Icon } from "../model/vast";
 import { sendError } from "./beacon";
 import { createIcons } from "./icon";
-import { ErrorCode } from "../../util/macro";
+import { ErrorCode, MacroReplacer } from "../../util/macro";
 import { convertTimeToSecond } from "../../util/time";
 
 const WRAPPER_MAX = 5;
@@ -14,11 +14,19 @@ const TRACKING_EVENT_POINT = new Map<string, number>([
     ["complete", 1]
 ]);
 
+function initVastObject(): VASTObject {
+    return {
+        errorUrls: [],
+        impressionUrls: [],
+        adTitle: "",
+        adDesc: "",
+        creatives: []
+    };
+}
+
 class Vast implements VastUtil {
-    errorUrls: string[];
 
     constructor() {
-        this.errorUrls = [];
     }
 
     private isWrapper(vEle: Element): boolean {
@@ -41,24 +49,25 @@ class Vast implements VastUtil {
         return data;
     }
 
-    async parseVast (sourceVast: string): Promise<VASTObject | null> {
+    async parseVast (sourceVast: string, macroReplacer: MacroReplacer): Promise<VASTObject | null> {
         try {
-            let vastEle = this.parseVastXML(sourceVast);
+            let vastObject = initVastObject();
             for (let i = 1; i <= WRAPPER_MAX; i++) {
+                // parse VAST to Object
+                let vastEle = this.parseVastXML(sourceVast);
+
                 if (this.isWrapper(vastEle)) {
                     if (i == WRAPPER_MAX) {
                         throw new Error("too many wrapper");
                     }
 
+                    vastObject = this.updateWrapperVastObject(vastObject, vastEle, macroReplacer);
                     sourceVast = await this.nextVast(vastEle);
-                    vastEle = this.parseVastXML(sourceVast);
                 } else {
+                    vastObject = this.updateInlineVastObject(vastObject, vastEle, macroReplacer);
                     break;
                 }
             }
-
-            let vastObject = this.createVastObject(vastEle);
-
             return vastObject;
         } catch (e) {
             console.log("[ERROR] cannot create VASTObject: " + e);
@@ -83,30 +92,110 @@ class Vast implements VastUtil {
         return vastEle;
     }
 
-    createVastObject(vEle: Element): VASTObject {
-
+    updateWrapperVastObject(vastObject: VASTObject, vEle: Element, macroReplacer: MacroReplacer): VASTObject {
+        let errorUrls: string[] = [];
         const rootErrorEle = vEle.querySelector(":scope>Error");
-        if (rootErrorEle && rootErrorEle.textContent) this.errorUrls.push(rootErrorEle.textContent);
+        if (rootErrorEle && rootErrorEle.textContent) errorUrls.push(rootErrorEle.textContent);
+
+        const wrapperEle = vEle.querySelector(":scope>Ad>Wrapper");
+        if (!wrapperEle) {
+            sendError(errorUrls, ErrorCode.NoVASTResponseAfterWrapper, macroReplacer);
+            throw new Error("parse Wrapper error");
+        }
+
+        const errorEle = wrapperEle.querySelector(":scope>Error");
+        if (errorEle && errorEle.textContent) errorUrls.push(errorEle.textContent);
+
+        const impEle = wrapperEle.querySelector(":scope>Impression");
+        if (!impEle || !impEle.textContent) {
+            sendError(errorUrls, ErrorCode.XMLParseError, macroReplacer);
+            throw new Error("parse Wrapper Impression error");
+        }
+        const impressionUrl = impEle.textContent;
+
+        const linearEle = wrapperEle.querySelector(":scope>Creatives>Creative>Linear");
+        if (!linearEle) {
+            vastObject.errorUrls = vastObject.errorUrls.concat(errorUrls);
+            vastObject.impressionUrls.push(impressionUrl);
+
+            return vastObject;
+        }
+
+        const durationEle = linearEle.querySelector(":scope>Duration");
+        if (!durationEle || !durationEle.textContent) {
+            sendError(errorUrls, ErrorCode.XMLParseError, macroReplacer);
+            throw new Error("parse Wrapper Linear Duration error");
+        }
+        const duration = convertTimeToSecond(durationEle.textContent);
+
+        const trackingsEles = linearEle.querySelectorAll(":scope>TrackingEvents>Tracking");
+        const trackingMap = this.createTrackingObject(trackingsEles, duration);
+
+        const iconEles = linearEle.querySelectorAll(":scope>Icons>Icon");
+        const icons = createIcons(iconEles);
+
+        const videoClicksEle = linearEle.querySelector(":scope>VideoClicks");
+        let clickThrough: ClickThrough | null = null;
+        let clickTracking: ClickTracking[] = [];
+        if (videoClicksEle) {
+            const clickThroughEle = videoClicksEle.querySelector(":scope>ClickThrough");
+            if (clickThroughEle && clickThroughEle.textContent) {
+                clickThrough = {
+                    content: clickThroughEle.textContent
+                }
+            }
+
+            const clickTrackingEles = videoClicksEle.querySelectorAll(":scope>ClickTracking");
+            for (let clickTrackingEle of clickTrackingEles) {
+                if (clickTrackingEle.textContent) {
+                    clickTracking.push({
+                        content: clickTrackingEle.textContent
+                    });
+                }
+            }
+        }
+
+        vastObject.errorUrls = vastObject.errorUrls.concat(errorUrls);
+        vastObject.impressionUrls.push(impressionUrl);
+        vastObject.creatives.push({
+            linear: {
+                duration: duration,
+                mediaFiles: [],
+                trackingEvents: trackingMap,
+                clickThrough: clickThrough,
+                clickTrackings: clickTracking,
+                icons: icons
+            }
+        });
+
+        return vastObject;
+    }
+
+    updateInlineVastObject(vastObject: VASTObject, vEle: Element, macroReplacer: MacroReplacer): VASTObject {
+
+        let errorUrls: string[] = [];
+        const rootErrorEle = vEle.querySelector(":scope>Error");
+        if (rootErrorEle && rootErrorEle.textContent) errorUrls.push(rootErrorEle.textContent);
 
         const inlineEle = vEle.querySelector(":scope>Ad>InLine");
         if (!inlineEle) {
-            sendError(this.errorUrls, ErrorCode.NoVASTResponseAfterWrapper);
+            sendError(errorUrls, ErrorCode.NoVASTResponseAfterWrapper, macroReplacer);
             throw new Error("parse InLine error");
         }
 
         const errorEle = inlineEle.querySelector(":scope>Error");
-        if (errorEle && errorEle.textContent) this.errorUrls.push(errorEle.textContent);
+        if (errorEle && errorEle.textContent) errorUrls.push(errorEle.textContent);
 
         const impEle = inlineEle.querySelector(":scope>Impression");
         if (!impEle || !impEle.textContent) {
-            sendError(this.errorUrls, ErrorCode.XMLParseError);
+            sendError(errorUrls, ErrorCode.XMLParseError, macroReplacer);
             throw new Error("parse InLine Impression error");
         }
         const impressionUrl = impEle.textContent;
 
         const adTitleEle = inlineEle.querySelector(":scope>AdTitle");
         if (!adTitleEle || !adTitleEle.textContent) {
-            sendError(this.errorUrls, ErrorCode.XMLParseError);
+            sendError(errorUrls, ErrorCode.XMLParseError, macroReplacer);
             throw new Error("parse InLine AdTitle error");
         }
         const adTitle = adTitleEle.textContent;
@@ -119,13 +208,13 @@ class Vast implements VastUtil {
 
         const linearEle = inlineEle.querySelector(":scope>Creatives>Creative>Linear");
         if (!linearEle) {
-            sendError(this.errorUrls, ErrorCode.XMLParseError);
+            sendError(errorUrls, ErrorCode.XMLParseError, macroReplacer);
             throw new Error("parse InLine Linear error");
         }
 
         const durationEle = linearEle.querySelector(":scope>Duration");
         if (!durationEle || !durationEle.textContent) {
-            sendError(this.errorUrls, ErrorCode.XMLParseError);
+            sendError(errorUrls, ErrorCode.XMLParseError, macroReplacer);
             throw new Error("parse InLine Linear Duration error");
         }
         const duration = convertTimeToSecond(durationEle.textContent);
@@ -138,7 +227,7 @@ class Vast implements VastUtil {
 
         const mediaFileEles = linearEle.querySelectorAll(":scope>MediaFiles>MediaFile");
         if (!mediaFileEles) {
-            sendError(this.errorUrls, ErrorCode.XMLParseError);
+            sendError(errorUrls, ErrorCode.XMLParseError, macroReplacer);
             throw new Error("parse MediaFiles error");
         }
         // ひとまず1つ目のMediaFileのURLのみ取得
@@ -150,7 +239,7 @@ class Vast implements VastUtil {
         if (videoClicksEle) {
             const clickThroughEle = videoClicksEle.querySelector(":scope>ClickThrough");
             if (!clickThroughEle || !clickThroughEle.textContent) {
-                sendError(this.errorUrls, ErrorCode.XMLParseError);
+                sendError(errorUrls, ErrorCode.XMLParseError, macroReplacer);
                 throw new Error("parse InLine Linear ClickThrough error");
             }
             clickThrough = {
@@ -167,28 +256,24 @@ class Vast implements VastUtil {
             }
         }
 
-        const vastObject: VASTObject = {
-            errorUrls: this.errorUrls,
-            impressionUrls: [impressionUrl],
-            adTitle: adTitle,
-            adDesc: adDesc,
-            creatives: [
-                {
-                    linear: {
-                        duration: duration,
-                        mediaFiles: [
-                            {
-                                content: mediaFileUrl
-                            }
-                        ],
-                        trackingEvents: trackingMap,
-                        clickThrough: clickThrough,
-                        clickTrackings: clickTracking,
-                        icons: icons
+        vastObject.errorUrls = vastObject.errorUrls.concat(errorUrls);
+        vastObject.impressionUrls.push(impressionUrl);
+        vastObject.adTitle = adTitle;
+        vastObject.adDesc = adDesc;
+        vastObject.creatives.push({
+            linear: {
+                duration: duration,
+                mediaFiles: [
+                    {
+                        content: mediaFileUrl
                     }
-                }
-            ]
-        }
+                ],
+                trackingEvents: trackingMap,
+                clickThrough: clickThrough,
+                clickTrackings: clickTracking,
+                icons: icons
+            }
+        });
 
         return vastObject;
     }

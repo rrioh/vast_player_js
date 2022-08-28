@@ -25,7 +25,7 @@ const inlineVastSample = `
   </Error>
   <Ad id="1b330e59-3a62-4000-b9fb-ac9726e98c52" sequence="1">
     <Wrapper>
-      <Impression><![CDATA[https://wrapper.test.example/track/impression1]]></Impression>
+      <Impression><![CDATA[https://wrapper.test.example/impression?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Impression>
       <VASTAdTagURI>
         <![CDATA[http://localhost:8080/sample/inline.html]]>
       </VASTAdTagURI>
@@ -47,84 +47,90 @@ declare global {
 class VastExecutor implements Executor {
     async startPlayer(sourceVast: string) {
         console.log("setPlayer started...");
-        sourceVast = inlineVastSample;
-        const vastObject = await lib.vast.parseVast(sourceVast);
-        if (!vastObject) {
-            return;
-        }
 
-        let iframe = document.createElement("iframe");
-        iframe.width = "300px";
-        iframe.height = "250px";
-        iframe.style.border = "none";
+        try {
+          let iframe = document.createElement("iframe");
+          iframe.width = "300px";
+          iframe.height = "250px";
+          iframe.style.border = "none";
 
-        document.getElementById("playerbox")?.appendChild(iframe);
-        let iDoc = iframe.contentWindow!.document;
-        iDoc.open();
-        iDoc.write(container);
-        iDoc.close();
-        iDoc.documentElement.style.overflow = "hidden";
+          document.getElementById("playerbox")?.appendChild(iframe);
+          let iDoc = iframe.contentWindow!.document;
+          iDoc.open();
+          iDoc.write(container);
+          iDoc.close();
+          iDoc.documentElement.style.overflow = "hidden";
 
-        let adTitleDiv = iDoc.getElementById("ad_title")!;
-        adTitleDiv.textContent = vastObject.adTitle;
-        let adDescDiv = iDoc.getElementById("ad_desc")!;
-        if (vastObject.adDesc) {
-            adDescDiv.textContent = vastObject.adDesc;
-        }
+          let vastVideoDiv = iDoc.getElementById("vast_video")!;
+          const macroReplacer = lib.createReplacer(vastVideoDiv);
 
-        let vastVideoDiv = iDoc.getElementById("vast_video")!;
-        let video = document.createElement("video");
-        for (let creative of vastObject.creatives) {
-          for (let mediaFile of creative.linear.mediaFiles) {
-            let source = document.createElement("source");
-            source.src = mediaFile.content;
-            let mediaType = lib.getMediaType(mediaFile.content);
-            if (mediaType) {
-              source.type = mediaType;
-            }
-            video.appendChild(source);
+          sourceVast = inlineVastSample;
+          const vastObject = await lib.vast.parseVast(sourceVast, macroReplacer);
+          if (!vastObject) {
+              return;
           }
-        }
-        //video.src = vastObject.mediaFileUrl;
-        video.style.width = "100%";
-        video.style.height = "100%";
-        video.muted = true;
-        video.autoplay = true;
 
-        // loadedmetadataイベント後でないとdurationが取れない
-        video.addEventListener("loadedmetadata", function(e) {
-            let progressbar = iDoc.getElementById("progress_bar")!;
-            let barAnimationLoop = function() {
-                let progressPoint = video.currentTime / video.duration * 100;
-                progressbar.style.width = progressPoint + "%";
-                requestAnimationFrame(barAnimationLoop);
+          let adTitleDiv = iDoc.getElementById("ad_title")!;
+          adTitleDiv.textContent = vastObject.adTitle;
+          let adDescDiv = iDoc.getElementById("ad_desc")!;
+          if (vastObject.adDesc) {
+              adDescDiv.textContent = vastObject.adDesc;
+          }
+
+          let video = document.createElement("video");
+          for (let creative of vastObject.creatives) {
+            for (let mediaFile of creative.linear.mediaFiles) {
+              let source = document.createElement("source");
+              source.src = mediaFile.content;
+              let mediaType = lib.getMediaType(mediaFile.content);
+              if (mediaType) {
+                source.type = mediaType;
+              }
+              video.appendChild(source);
             }
-            requestAnimationFrame(barAnimationLoop);
-        });
+          }
+          //video.src = vastObject.mediaFileUrl;
+          video.style.width = "100%";
+          video.style.height = "100%";
+          video.muted = true;
+          video.autoplay = true;
 
-        const macroReplacer = lib.createReplacer(vastVideoDiv);
-        lib.setBeacons(video, vastObject, macroReplacer);
-        lib.setIcons(video, vastVideoDiv, vastObject, macroReplacer);
+          // loadedmetadataイベント後でないとdurationが取れない
+          video.addEventListener("loadedmetadata", function(e) {
+              let progressbar = iDoc.getElementById("progress_bar")!;
+              let barAnimationLoop = function() {
+                  let progressPoint = video.currentTime / video.duration * 100;
+                  progressbar.style.width = progressPoint + "%";
+                  requestAnimationFrame(barAnimationLoop);
+              }
+              requestAnimationFrame(barAnimationLoop);
+          });
 
-        // IntersectionObserver
-        // 50%画面内に入ったら再生、出たら停止
-        const options = {
-            rootMargin: "0px",
-            threshold: 0.5
+          lib.setBeacons(video, vastObject, macroReplacer);
+          lib.setIcons(video, vastVideoDiv, vastObject, macroReplacer);
+
+          // IntersectionObserver
+          // 50%画面内に入ったら再生、出たら停止
+          const options = {
+              rootMargin: "0px",
+              threshold: 0.5
+          }
+          function callback(entries: IntersectionObserverEntry[]) {
+              entries.forEach(function(entry) {
+                  if (entry.isIntersecting) {
+                      video.play();
+                  } else {
+                      video.pause();
+                  }
+              });
+          }
+          const observer = new IntersectionObserver(callback, options);
+          observer.observe(video);
+
+          vastVideoDiv.appendChild(video);
+        } catch (e) {
+          console.log("cannot start Player: " + e);
         }
-        function callback(entries: IntersectionObserverEntry[]) {
-            entries.forEach(function(entry) {
-                if (entry.isIntersecting) {
-                    video.play();
-                } else {
-                    video.pause();
-                }
-            });
-        }
-        const observer = new IntersectionObserver(callback, options);
-        observer.observe(video);
-
-        vastVideoDiv.appendChild(video);
     }
 }
 

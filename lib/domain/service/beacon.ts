@@ -71,15 +71,12 @@ export function createBeacon(parent: HTMLElement, url: string | null, macroRepla
     console.log("[DEBUG] beacon sent: " + url);
 }
 
-export function sendError(urls: string[] | null, errorCode: number) {
+export function sendError(urls: string[] | null, errorCode: number, macroReplacer: MacroReplacer) {
     if (!urls) return;
 
     for (let url of urls) {
-        let ele = document.createElement("img");
-        ele.src = url.replace(/\[ERRORCODE\]/, errorCode.toString());
-        ele.style.display = "none";
-        document.body.prepend(ele);
-        console.log("[DEBUG] error beacon sent: " + url);
+        url = url.replace(/\[ERRORCODE\]/, errorCode.toString());
+        createBeacon(document.body, url, macroReplacer);
     }
 }
 
