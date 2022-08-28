@@ -145,8 +145,6 @@ class Vast implements VastUtil {
         const mediaFileUrl = mediaFileEles[0]?.textContent!;
 
         const videoClicksEle = linearEle.querySelector(":scope>VideoClicks");
-        let clickThroughUrl: string | null = null;
-        let clickTrackingUrls: string[] = [];
         let clickThrough: ClickThrough | null = null;
         let clickTracking: ClickTracking[] = [];
         if (videoClicksEle) {
