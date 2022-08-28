@@ -108,7 +108,18 @@ class VastExecutor implements Executor {
 
         let vastVideoDiv = iDoc.getElementById("vast_video")!;
         let video = document.createElement("video");
-        video.src = vastObject.mediaFileUrl;
+        for (let creative of vastObject.creatives) {
+          for (let mediaFile of creative.linear.mediaFiles) {
+            let source = document.createElement("source");
+            source.src = mediaFile.content;
+            let mediaType = lib.getMediaType(mediaFile.content);
+            if (mediaType) {
+              source.type = mediaType;
+            }
+            video.appendChild(source);
+          }
+        }
+        //video.src = vastObject.mediaFileUrl;
         video.style.width = "100%";
         video.style.height = "100%";
         video.muted = true;

@@ -1,6 +1,6 @@
-import { VastUtil, VASTObject } from "../model/vast";
-import { IconObject } from "../model/icon";
+import { VastUtil, VASTObject, ClickThrough, ClickTracking, Icon } from "../model/vast";
 import { sendError } from "./beacon";
+import { createIcons } from "./icon";
 import { ErrorCode } from "../../util/macro";
 import { convertTimeToSecond } from "../../util/time";
 
@@ -100,7 +100,7 @@ class Vast implements VastUtil {
         const trackingMap = this.createTrackingObject(trackingsEles, duration);
 
         const iconEles = linearEle.querySelectorAll(":scope>Icons>Icon");
-        const iconObjects = this.createIconObject(iconEles);
+        const icons = createIcons(iconEles);
 
         const mediaFileEles = linearEle.querySelectorAll(":scope>MediaFiles>MediaFile");
         if (!mediaFileEles) {
@@ -113,18 +113,24 @@ class Vast implements VastUtil {
         const videoClicksEle = linearEle.querySelector(":scope>VideoClicks");
         let clickThroughUrl: string | null = null;
         let clickTrackingUrls: string[] = [];
+        let clickThrough: ClickThrough | null = null;
+        let clickTracking: ClickTracking[] = [];
         if (videoClicksEle) {
             const clickThroughEle = videoClicksEle.querySelector(":scope>ClickThrough");
             if (!clickThroughEle || !clickThroughEle.textContent) {
                 sendError(this.errorUrls, ErrorCode.XMLParseError);
                 throw new Error("parse InLine Linear ClickThrough error");
             }
-            clickThroughUrl = clickThroughEle.textContent;
+            clickThrough = {
+                content: clickThroughEle.textContent
+            }
 
             const clickTrackingEles = videoClicksEle.querySelectorAll(":scope>ClickTracking");
             for (let clickTrackingEle of clickTrackingEles) {
                 if (clickTrackingEle.textContent) {
-                    clickTrackingUrls.push(clickTrackingEle.textContent);
+                    clickTracking.push({
+                        content: clickTrackingEle.textContent
+                    });
                 }
             }
         }
@@ -134,11 +140,22 @@ class Vast implements VastUtil {
             impressionUrls: [impressionUrl],
             adTitle: adTitle,
             adDesc: adDesc,
-            trackings: trackingMap,
-            icons: iconObjects,
-            mediaFileUrl: mediaFileUrl,
-            clickThroughUrl: clickThroughUrl,
-            clickTrackingUrls: clickTrackingUrls,
+            creatives: [
+                {
+                    linear: {
+                        duration: duration,
+                        mediaFiles: [
+                            {
+                                content: mediaFileUrl
+                            }
+                        ],
+                        trackingEvents: trackingMap,
+                        clickThrough: clickThrough,
+                        clickTrackings: clickTracking,
+                        icons: icons
+                    }
+                }
+            ]
         }
 
         return vastObject;
@@ -166,59 +183,6 @@ class Vast implements VastUtil {
         });
 
         return trackingMap;
-    }
-
-    createIconObject(iconEles: NodeList): IconObject[] {
-        let iconObjects: IconObject[] = [];
-        for (let icon of iconEles) {
-            let iconEle = icon as Element;
-
-            let width = parseInt(iconEle.getAttribute("width") || "10") || 10;
-            let height = parseInt(iconEle.getAttribute("height") || "10") || 10;
-            let x = "0px";
-            let xPosition = iconEle.getAttribute("xPosition");
-            if(xPosition) {
-                if (xPosition === "left" || xPosition === "right") {
-                    x = xPosition;
-                } else {
-                    x = xPosition + "px";
-                }
-            }
-            let y = "0px";
-            let yPosition = iconEle.getAttribute("yPosition");
-            if(yPosition) {
-                if (yPosition === "top" || yPosition === "bottom") {
-                    y = yPosition;
-                } else {
-                    y = yPosition + "px";
-                }
-            }
-            let offset = iconEle.getAttribute("offset");
-            let start = 0;
-            if (offset) start = convertTimeToSecond(offset);
-            let duration = iconEle.getAttribute("duration");
-            let end = null;
-            if (duration) end = convertTimeToSecond(duration) + start;
-
-            const staticResource = iconEle.querySelector(":scope>StaticResource");
-            if (!staticResource || !staticResource.textContent) continue;
-            const iconClickThrough = iconEle.querySelector(":scope>IconClicks>IconClickThrough");
-            const iconClickTracking = iconEle.querySelector(":scope>IconClicks>IconClickTracking");
-
-            iconObjects.push({
-                width: width,
-                height: height,
-                xPosition: x,
-                yPosition: y,
-                start: start,
-                end: end,
-                imgUrl: staticResource.textContent,
-                clickThroughUrl: iconClickThrough?.textContent ?? null,
-                clickTrackingUrl: iconClickTracking?.textContent ?? null
-            });
-        }
-
-        return iconObjects;
     }
 }
 

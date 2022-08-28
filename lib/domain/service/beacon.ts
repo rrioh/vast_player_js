@@ -10,41 +10,49 @@ function setImpressionUrl(video: HTMLVideoElement, urls: string[], macroReplacer
     }
 }
 
-function setVideoClickThroughUrl(video: HTMLVideoElement, url: string | null) {
-    if (!url) return;
-
-    video.addEventListener("click", function(e) {
-        open(url, "_blank");
-    });
+function setVideoClickThroughUrl(video: HTMLVideoElement, vastObject: VASTObject) {
+    for (let creative of vastObject.creatives) {
+        if (creative.linear.clickThrough) {
+            const url = creative.linear.clickThrough.content;
+            video.addEventListener("click", function(e) {
+                open(url, "_blank");
+            });
+        }
+    }
 }
 
-function setVideoClickTrackingUrls(video: HTMLVideoElement, urls: string[], macroReplacer: MacroReplacer) {
-    for ( let url of urls) {
-        video.addEventListener("click", function(e) {
-            createBeacon(video, url, macroReplacer);
-        });
+function setVideoClickTrackingUrls(video: HTMLVideoElement, vastObject: VASTObject, macroReplacer: MacroReplacer) {
+    for (let creative of vastObject.creatives) {
+        for (let clickTracking of creative.linear.clickTrackings) {
+            const url = clickTracking.content;
+            video.addEventListener("click", function(e) {
+                createBeacon(video, url, macroReplacer);
+            });
+        }
     }
 }
 
 function setTrackingUrls(video: HTMLVideoElement, vastObject: VASTObject, macroReplacer: MacroReplacer) {
     video.addEventListener("loadedmetadata", function(e) {
-        for (let [point, url] of vastObject.trackings) {
-            if (point == "loaded") {
-                video.addEventListener("canplay", function (e) {
-                    createBeacon(video, url, macroReplacer);
-                },
-                {once: true});
-            } else if (point === "pause") {
-                video.addEventListener("pause", function (e) {
-                    createBeacon(video,url, macroReplacer);
-                });
-            } else if (typeof point === "number") {
-                video.addEventListener("timeupdate", function timeBeaconEvent(e) {
-                    if (video.currentTime >= point) {
+        for (let creative of vastObject.creatives) {
+            for (let [point, url] of creative.linear.trackingEvents) {
+                if (point == "loaded") {
+                    video.addEventListener("canplay", function (e) {
                         createBeacon(video, url, macroReplacer);
-                        video.removeEventListener("timeupdate", timeBeaconEvent);
-                    }
-                });
+                    },
+                    {once: true});
+                } else if (point === "pause") {
+                    video.addEventListener("pause", function (e) {
+                        createBeacon(video,url, macroReplacer);
+                    });
+                } else if (typeof point === "number") {
+                    video.addEventListener("timeupdate", function timeBeaconEvent(e) {
+                        if (video.currentTime >= point) {
+                            createBeacon(video, url, macroReplacer);
+                            video.removeEventListener("timeupdate", timeBeaconEvent);
+                        }
+                    });
+                }
             }
         }
     });
@@ -77,7 +85,7 @@ export function sendError(urls: string[] | null, errorCode: number) {
 
 export function setBeacons(video: HTMLVideoElement, vastObject: VASTObject, macroReplacer: MacroReplacer) {
     setImpressionUrl(video, vastObject.impressionUrls, macroReplacer);
-    setVideoClickThroughUrl(video, vastObject.clickThroughUrl);
-    setVideoClickTrackingUrls(video, vastObject.clickTrackingUrls, macroReplacer);
+    setVideoClickThroughUrl(video, vastObject);
+    setVideoClickTrackingUrls(video, vastObject, macroReplacer);
     setTrackingUrls(video, vastObject, macroReplacer);
 }
