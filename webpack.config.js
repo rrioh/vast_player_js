@@ -1,6 +1,7 @@
 const path = require("path");
 
 module.exports = {
+    mode: "production",
     entry: "./src/main.ts",
     output: {
         filename: "vast_player.js",
