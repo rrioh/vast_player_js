@@ -74,15 +74,10 @@ export function createReplacer(videoParent: HTMLElement): MacroReplacer {
     replaceMap.set("[INVIEW_RATIO]", getInviewRatio(inviewRatioMgr));
 
     return (target: string, errorCode: ErrorCode | null) => {
-        console.log("REPLACE MAP:");
-        console.log(replaceMap);
         if (errorCode) {
             replaceMap.set("[ERRORCODE]", errorCode.toString())
         }
         replaceMap.forEach((value, key) => {
-            console.log("REPLACER KEY: "+key);
-            console.log("REPLACER VALUE: ");
-            console.log(value);
             target = target.replace(key, typeof value === "function" ? value() : value);
         });
 

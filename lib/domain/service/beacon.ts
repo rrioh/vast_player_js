@@ -43,7 +43,9 @@ function setTrackingUrls(video: HTMLVideoElement, vastObject: VASTObject, macroR
                     {once: true});
                 } else if (point === "pause") {
                     video.addEventListener("pause", function (e) {
-                        createBeacon(video,url, macroReplacer);
+                        if (video.currentTime < video.duration) {
+                            createBeacon(video,url, macroReplacer);
+                        }
                     });
                 } else if (typeof point === "number") {
                     video.addEventListener("timeupdate", function timeBeaconEvent(e) {

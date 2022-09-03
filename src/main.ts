@@ -29,6 +29,18 @@ const inlineVastSample = `
       <VASTAdTagURI>
         <![CDATA[http://localhost:8080/sample/inline.html]]>
       </VASTAdTagURI>
+      <Creatives>
+        <Creative adId="7245" sequence="1">
+          <Linear>
+            <Duration>00:00:14.014</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://wrapper.test.example/start?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Tracking>
+              <Tracking event="firstQuartile"><![CDATA[https://wrapper.test.example/firstQuartile?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://wrapper.test.example/complete?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Tracking>
+            </TrackingEvents>
+          </Linear>
+        </Creative>
+      </Creatives>
     </Wrapper>
   </Ad>
 </VAST>
@@ -109,6 +121,8 @@ class VastExecutor implements Executor {
           lib.setBeacons(video, vastObject, macroReplacer);
           lib.setIcons(video, vastVideoDiv, vastObject, macroReplacer);
 
+          vastVideoDiv.appendChild(video);
+
           // IntersectionObserver
           // 50%画面内に入ったら再生、出たら停止
           const options = {
@@ -127,7 +141,6 @@ class VastExecutor implements Executor {
           const observer = new IntersectionObserver(callback, options);
           observer.observe(video);
 
-          vastVideoDiv.appendChild(video);
         } catch (e) {
           console.log("cannot start Player: " + e);
         }
