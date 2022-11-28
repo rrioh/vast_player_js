@@ -1,99 +1,105 @@
 export enum ErrorCode {
-    XMLParseError = 100,
-    VASTSchemaValidationError,
-    VASTVersionOfResponseNotSupported,
+  XMLParseError = 100,
+  VASTSchemaValidationError,
+  VASTVersionOfResponseNotSupported,
 
-    NonPlayableAdType = 200,
-    MediaPlayerExpectingDifferentLinearity,
-    MediaPlayerExpectingDifferentDuration,
-    MediaPlayerExpectingDifferentSize,
-    AdCategoryNotProvided,
-    InlineCategoryViolatesWrapperBlockedAdCategories,
-    AdNotServed,
+  NonPlayableAdType = 200,
+  MediaPlayerExpectingDifferentLinearity,
+  MediaPlayerExpectingDifferentDuration,
+  MediaPlayerExpectingDifferentSize,
+  AdCategoryNotProvided,
+  InlineCategoryViolatesWrapperBlockedAdCategories,
+  AdNotServed,
 
-    GeneralWrapperError = 300,
-    VASTURIUnavailableOrTimeout,
-    WrapperLimitReached,
-    NoVASTResponseAfterWrapper,
-    AdUnitNotDisplayed,
+  GeneralWrapperError = 300,
+  VASTURIUnavailableOrTimeout,
+  WrapperLimitReached,
+  NoVASTResponseAfterWrapper,
+  AdUnitNotDisplayed,
 
-    GeneralLinearError = 400,
-    FileNotFound,
-    MediaFileURITimeout,
-    SupportedMediaFileNotFound,
-    ProblemDisplayingMediaFile = 405,
-    MezzanineNotProvided,
-    MezzanineDownloading,
-    ConditionalAdRejected,
-    InteractiveUnitNotExecuted,
-    VerificationUnitNotExecuted,
-    NotRequiredSpecificationOfMezzanine,
+  GeneralLinearError = 400,
+  FileNotFound,
+  MediaFileURITimeout,
+  SupportedMediaFileNotFound,
+  ProblemDisplayingMediaFile = 405,
+  MezzanineNotProvided,
+  MezzanineDownloading,
+  ConditionalAdRejected,
+  InteractiveUnitNotExecuted,
+  VerificationUnitNotExecuted,
+  NotRequiredSpecificationOfMezzanine,
 
-    GeneralNonLinearAdsError = 500,
-    NonLinearAdNonDisplayable,
-    UnableToFetchNonLinearResource,
-    SupportedNonLinearResourceNotFound,
+  GeneralNonLinearAdsError = 500,
+  NonLinearAdNonDisplayable,
+  UnableToFetchNonLinearResource,
+  SupportedNonLinearResourceNotFound,
 
-    GeneralCompanionAdsError = 600,
-    CompanionNonDisplayableByDimemsionError,
-    RequiredCompanionNonDisplayable,
-    UnableToFetchNonCompanionResource,
-    SupportedCompanionResourceNotFound,
+  GeneralCompanionAdsError = 600,
+  CompanionNonDisplayableByDimemsionError,
+  RequiredCompanionNonDisplayable,
+  UnableToFetchNonCompanionResource,
+  SupportedCompanionResourceNotFound,
 
-    UndefinedError = 900,
-    GeneralVPAIDError,
-    GeneralInteractiveCreativeFileError
+  UndefinedError = 900,
+  GeneralVPAIDError,
+  GeneralInteractiveCreativeFileError,
 }
 
-export type MacroReplacer = (target: string, errorCode: ErrorCode | null) => string;
+export type MacroReplacer = (
+  target: string,
+  errorCode: ErrorCode | null
+) => string;
 
 export function createReplacer(videoParent: HTMLElement): MacroReplacer {
-    let replaceMap = new Map<string, string | (() => string)>();
+  let replaceMap = new Map<string, string | (() => string)>();
 
-    // time stamp
-    replaceMap.set("[TIMESTAMP]", getTimestamp());
+  // time stamp
+  replaceMap.set("[TIMESTAMP]", getTimestamp());
 
-    // inview ratio
-    const inviewRatioMgr: {
-        ratio: number;
-    } = {
-        ratio: 0
-    };
-    const options = {
-        rootMargin: "0px",
-        threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+  // inview ratio
+  const inviewRatioMgr: {
+    ratio: number;
+  } = {
+    ratio: 0,
+  };
+  const options = {
+    rootMargin: "0px",
+    threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+  };
+  function callback(entries: IntersectionObserverEntry[]) {
+    entries.forEach(function (entry) {
+      const ratio = Math.floor(entry.intersectionRatio * 100) / 100;
+      inviewRatioMgr.ratio = ratio;
+    });
+  }
+  const observer = new IntersectionObserver(callback, options);
+  observer.observe(videoParent);
+  replaceMap.set("[INVIEW_RATIO]", getInviewRatio(inviewRatioMgr));
+
+  return (target: string, errorCode: ErrorCode | null) => {
+    if (errorCode) {
+      replaceMap.set("[ERRORCODE]", errorCode.toString());
     }
-    function callback(entries: IntersectionObserverEntry[]) {
-        entries.forEach(function(entry) {
-            const ratio = Math.floor(entry.intersectionRatio * 100) / 100;
-            inviewRatioMgr.ratio = ratio;
-        });
-    }
-    const observer = new IntersectionObserver(callback, options);
-    observer.observe(videoParent);
-    replaceMap.set("[INVIEW_RATIO]", getInviewRatio(inviewRatioMgr));
+    replaceMap.forEach((value, key) => {
+      target = target.replace(
+        key,
+        typeof value === "function" ? value() : value
+      );
+    });
 
-    return (target: string, errorCode: ErrorCode | null) => {
-        if (errorCode) {
-            replaceMap.set("[ERRORCODE]", errorCode.toString())
-        }
-        replaceMap.forEach((value, key) => {
-            target = target.replace(key, typeof value === "function" ? value() : value);
-        });
-
-        return target;
-    };
+    return target;
+  };
 }
 
 function getTimestamp(): () => string {
-    return () => {
-        let date = new Date();
-        return date.toISOString();
-    };
+  return () => {
+    let date = new Date();
+    return date.toISOString();
+  };
 }
 
-function getInviewRatio(inviewRatioMgr: {ratio: number}): () => string {
-    return () => {
-        return inviewRatioMgr.ratio.toFixed(2);
-    };
+function getInviewRatio(inviewRatioMgr: { ratio: number }): () => string {
+  return () => {
+    return inviewRatioMgr.ratio.toFixed(2);
+  };
 }
