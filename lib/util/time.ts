@@ -3,14 +3,14 @@ export function convertTimeToSecond(durationStr: string): number {
   if (
     !result ||
     result.length < 4 ||
-    parseInt(result[1]) === NaN ||
-    parseInt(result[2]) === NaN ||
-    parseInt(result[3]) === NaN
+    isNaN(parseInt(result[1])) ||
+    isNaN(parseInt(result[2])) ||
+    isNaN(parseInt(result[3]))
   ) {
     throw new Error("convertdurationToSecond error: " + durationStr);
   }
 
-  if (result.length == 5 && parseInt(result[4]) != NaN) {
+  if (result.length == 5 && !isNaN(parseInt(result[4]))) {
     return (
       parseInt(result[1]) * 60 * 60 +
       parseInt(result[2]) * 60 +
