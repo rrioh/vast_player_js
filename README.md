@@ -1,8 +1,32 @@
+* docker起動
 
-* ローカルテストサーバ起動（port: 8080）
+```
+docker compose up -d
+```
+
+* コンテナ内でビルド
+
+```
+npm run build
+```
+
+* コンテナ内でローカルテストサーバ起動（port: 8080）
 
 ```
 npm run start
+```
+
+* コンテナ内でコードフォーマット
+
+```
+npm run fmt
+```
+
+* コンテナ内でテスト
+
+```
+cd e2e
+npm run test
 ```
 
 VAST4.2
