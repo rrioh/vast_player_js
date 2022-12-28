@@ -1,5 +1,6 @@
 import { defineConfig } from "rollup";
-import typescript from '@rollup/plugin-typescript';
+import typescript from "@rollup/plugin-typescript";
+import terser from "@rollup/plugin-terser";
 
 export default defineConfig({
     input: "src/main.ts",
@@ -8,6 +9,7 @@ export default defineConfig({
         format: "iife"
     },
     plugins: [
-        typescript()
+        typescript(),
+        terser()
     ]
 });
