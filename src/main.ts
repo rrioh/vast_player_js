@@ -27,7 +27,7 @@ const inlineVastSample = `
     <Wrapper>
       <Impression><![CDATA[https://wrapper.test.example/impression?clientTime=[TIMESTAMP]&inview_ratio=[INVIEW_RATIO]]]></Impression>
       <VASTAdTagURI>
-        <![CDATA[http://localhost:8080/sample/inline.html]]>
+        <![CDATA[http://127.0.0.1:8080/sample/inline.html]]>
       </VASTAdTagURI>
       <Creatives>
         <Creative adId="7245" sequence="1">
