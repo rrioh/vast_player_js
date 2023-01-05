@@ -1,5 +1,7 @@
 FROM node:16
 
+ENV TZ=Asia/Tokyo
+ENV LANG=ja_JP.UTF-8
 ENV APPHOME=/root/vast_player_js
 WORKDIR $APPHOME
 
